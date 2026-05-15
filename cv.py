@@ -83,10 +83,10 @@ while cap.isOpened():
             pip_y = vector_data[6]["y"]
             
             if tip_y < pip_y:
-                cv2.putText(frame, "INDEX UP", (50, 50), 
+                cv2.putText(frame, f"INDEX UP X: {vector_data[8]['x']:.2f} Y: {vector_data[8]['y']:.2f} Z: {vector_data[8]['z']:.2f}", (50, 50), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             else:
-                cv2.putText(frame, "INDEX DOWN", (50, 50), 
+                cv2.putText(frame, f"INDEX DOWN X: {vector_data[8]['x']:.2f} Y: {vector_data[8]['y']:.2f} Z: {vector_data[8]['z']:.2f}", (50, 50), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     cv2.imshow('Hand Tracking (Tasks API)', frame)
