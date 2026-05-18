@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板三：算法專注番茄鐘 (自訂時間版)</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #bb86fc;
+            --text-color: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        body {
+            margin: 0; height: 100vh; background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center;
+        }
+
+        .card {
+            background: var(--card-bg); padding: 50px 70px; border-radius: 15px;
+            text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #333;
+            max-width: 500px; width: 100%;
+        }
+
+        .status { font-size: 1.5rem; color: var(--text-secondary); text-transform: uppercase; font-weight: bold; }
+        
+        .timer {
+            font-size: 8rem; font-weight: bold; font-family: monospace;
+            margin: 10px 0; color: var(--accent-color); letter-spacing: 2px;
+        }
+
+        /* 時間設定區域 */
+        .config-area {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .config-area input {
+            background: #2a2a2a; border: 1px solid #444; color: #fff;
+            padding: 8px 12px; border-radius: 5px; width: 80px; text-align: center;
+            font-size: 1.2rem; font-weight: bold;
+        }
+
+        .config-area button {
+            background: #2a2a2a; border: 1px solid var(--accent-color); color: var(--accent-color);
+            padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        .config-area button:hover { background: var(--accent-color); color: #000; }
+
+        .hint { color: #666; font-size: 0.9rem; margin-top: 20px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="status" id="status">算法專注中</div>
+        <div class="timer" id="timer-display">25:00</div>
+        
+        <div class="config-area">
+            <button onclick="adjustMinutes(-5)">-5 分</button>
+            <input type="number" id="custom-min" value="25" min="1" max="180" onchange="setCustomTime()">
+            <span style="font-size: 1.2rem;">分鐘</span>
+            <button onclick="adjustMinutes(5)">+5 分</button>
+        </div>
+
+        <div class="hint">
+            <b>操作指引：</b><br>
+            [ 空白鍵 ] 開始 / 暫停<br>
+            [ Esc 鍵 ] 重設為自訂時間<br>
+            [ 鍵盤 ↑ / ↓ ] 調整時間 (+5 / -5 分鐘，可對應微手勢)
+        </div>
+    </div>
+
+    <script>
+        let timerInterval = null;
+        let defaultMinutes = 25; // 預設分鐘數
+        let timeRemaining = defaultMinutes * 60;
+        let isRunning = false;
+
+        const display = document.getElementById('timer-display');
+        const statusText = document.getElementById('status');
+        const inputField = document.getElementById('custom-min');
+
+        // 更新畫面上的時間倒數
+        function updateDisplay() {
+            const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const secs = (timeRemaining % 60).toString().padStart(2, '0');
+            display.textContent = `${mins}:${secs}`;
+        }
+
+        // 根據輸入框的值直接設定時間
+        function setCustomTime() {
+            if (isRunning) toggleTimer(); // 如果正在跑，先暫停
+            
+            let value = parseInt(inputField.value);
+            if (isNaN(value) || value < 1) value = 1; // 至少 1 分鐘
+            
+            defaultMinutes = value;
+            timeRemaining = defaultMinutes * 60;
+            updateDisplay();
+            statusText.textContent = "時間已更新";
+            statusText.style.color = "var(--text-secondary)";
+        }
+
+        // 按鈕加減分鐘數（微調）
+        function adjustMinutes(amount) {
+            let currentVal = parseInt(inputField.value);
+            let newVal = currentVal + amount;
+            if (newVal < 1) newVal = 1;
+            
+            inputField.value = newVal;
+            setCustomTime();
+        }
+
+        // 開始 / 暫停 控制
+        function toggleTimer() {
+            if (isRunning) {
+                // 暫停邏輯
+                clearInterval(timerInterval);
+                isRunning = false;
+                statusText.textContent = "計時暫停";
+                statusText.style.color = "var(--text-secondary)";
+                console.log("番茄鐘：暫停");
+            } else {
+                // 開始邏輯
+                isRunning = true;
+                statusText.textContent = "專注中...";
+                statusText.style.color = "#ff4a4a";
+                
+                // 在輸入框輸入完按空白鍵時，確保同步最後數字
+                setCustomTimeFromFieldWithoutReset(); 
+
+                timerInterval = setInterval(() => {
+                    if (timeRemaining > 0) {
+                        timeRemaining--;
+                        updateDisplay();
+                    } else {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        statusText.textContent = "時間到！";
+                        alert("番茄鐘結束，休息一下吧！");
+                    }
+                }, 1000);
+                console.log("番茄鐘：開始");
+            }
+        }
+
+        // 輔助函數：開始時讀取輸入框，但不重設已經在倒數的時間
+        function setCustomTimeFromFieldWithoutReset() {
+            let value = parseInt(inputField.value);
+            if (!isNaN(value) && value >= 1) {
+                if (defaultMinutes !== value) {
+                    defaultMinutes = value;
+                    timeRemaining = defaultMinutes * 60;
+                    updateDisplay();
+                }
+            }
+        }
+
+        // 重設番茄鐘
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeRemaining = defaultMinutes * 60;
+            statusText.textContent = "算法專注中";
+            statusText.style.color = "var(--text-secondary)";
+            updateDisplay();
+            console.log("番茄鐘：重設");
+        }
+
+        // 監聽鍵盤事件
+        window.addEventListener('keydown', function(e) {
+            // 如果是在輸入框內部按鍵，不觸發全局快捷鍵（方便使用者打字）
+            if (document.activeElement === inputField && e.key !== 'Enter' && e.key !== 'Escape') {
+                return; 
+            }
+
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault(); 
+                toggleTimer();
+            } else if (e.key === 'Escape') {
+                resetTimer();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                adjustMinutes(5); // 鍵盤上鍵 +5 分
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                adjustMinutes(-5); // 鍵盤下鍵 -5 分
+            } else if (e.key === 'Enter') {
+                inputField.blur(); // 按 Enter 隱藏輸入框焦點並更新
+                setCustomTime();
+            }
+        });
+    </script>
+</body>
+</html>

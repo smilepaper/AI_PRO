@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手勢控制多模態工作站</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --nav-bg: #14161d;
+            --card-border: rgba(255, 255, 255, 0.04);
+            --accent-color: #66fcf1; 
+            --text-main: #f5f6f9;
+            --text-muted: #8f94a6;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 頂部高級感分頁導覽列 (手勢控制時可選用，發表時也很好看) */
+        .tab-bar {
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 0;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tab-btn.active {
+            background: rgba(102, 252, 241, 0.08);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* 視窗貨櫃區：利用 3D 平移達到極其流暢的切換動畫 */
+        .stage {
+            flex-grow: 1;
+            display: flex;
+            width: 300%; /* 三個面板橫向排列 */
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateX(0%);
+        }
+
+        .panel-wrapper {
+            width: 33.3333%;
+            height: 100%;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+
+        /* 跨面板聯動：全域番茄鐘時間到強大警告層 */
+        .global-alert {
+            position: fixed; inset: 0;
+            background: rgba(11, 12, 16, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .global-alert.active {
+            opacity: 1; visibility: visible;
+        }
+
+        .alert-box {
+            background: #1c1f26;
+            padding: 40px 60px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid rgba(255, 74, 74, 0.3);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .alert-title {
+            font-size: 2rem; font-weight: 700; color: #ff4a4a; margin-bottom: 12px;
+        }
+
+        .alert-btn {
+            margin-top: 25px; background: #ff4a4a; color: #fff;
+            border: none; padding: 10px 24px; border-radius: 20px;
+            cursor: pointer; font-weight: 600;
+        }
+
+        .global-hint {
+            position: fixed; bottom: 15px; left: 20px;
+            font-size: 0.75rem; color: var(--text-muted); font-family: monospace;
+            z-index: 101; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchPanel(0)">1. 網頁傳送門 (Portal)</button>
+        <button class="tab-btn" onclick="switchPanel(1)">2. 電子閱讀器 (Reader)</button>
+        <button class="tab-btn" onclick="switchPanel(2)">3. 專注番茄鐘 (Timer)</button>
+    </div>
+
+    <div class="stage" id="main-stage">
+        <div class="panel-wrapper"><iframe id="frame-portal" src="1_switcher.html"></iframe></div>
+        <div class="panel-wrapper"><iframe id="frame-ebook" src="2_ebook.html"></iframe></div>
+        <div class="panel-wrapper"><iframe id="frame-pomodoro" src="3_pomodoro.html"></iframe></div>
+    </div>
+
+    <div class="global-alert" id="global-alert">
+        <div class="alert-box">
+            <div class="alert-title">⏰ Tomato Timer Time Up!</div>
+            <div style="color: var(--text-muted);">演算法專注時段結束，請起立活動手部關節。</div>
+            <button class="alert-btn" onclick="dismissAlert()">收到 (Dismiss)</button>
+        </div>
+    </div>
+
+    <div class="global-hint">
+        中控台快捷鍵: <code>[ PageUp ]</code> 上一面板 | <code>[ PageDown ]</code> 下一面板
+    </div>
+
+    <script>
+        let currentPanelIndex = 0;
+        const totalPanels = 3;
+        const stage = document.getElementById('main-stage');
+        const tabs = document.querySelectorAll('.tab-btn');
+
+        // 核心切換函數：讓畫面優雅滑動
+        function switchPanel(index) {
+            if (index < 0 || index >= totalPanels) return;
+            currentPanelIndex = index;
+            
+            // 計算滑動百分比
+            const offset = currentPanelIndex * -33.3333;
+            stage.style.transform = `translateX(${offset}%)`;
+
+            // 更新分頁按鈕高亮
+            tabs.forEach((tab, i) => {
+                if (i === currentPanelIndex) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            // 轉移焦點，確保手勢指令能立刻送進子網頁
+            setTimeout(() => {
+                const frames = ['frame-portal', 'frame-ebook', 'frame-pomodoro'];
+                const activeFrame = document.getElementById(frames[currentPanelIndex]);
+                if (activeFrame) activeFrame.contentWindow.focus();
+            }, 100);
+        }
+
+        // 跨面板聯動：接收來自番茄鐘「時間到」的訊號
+        window.addEventListener('message', function(event) {
+            if (event.data === 'pomodoro-time-up') {
+                document.getElementById('global-alert').classList.add('active');
+                // 播放警示音 (可選)
+            }
+        });
+
+        function dismissAlert() {
+            document.getElementById('global-alert').classList.remove('active');
+            switchPanel(2); // 點選後自動帶使用者回去番茄鐘面板重設
+        }
+
+        // 中控台專屬鍵盤監聽（為了配合手勢大動作切換面板）
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'PageDown') {
+                e.preventDefault();
+                switchPanel((currentPanelIndex + 1) % totalPanels);
+            } else if (e.key === 'PageUp') {
+                e.preventDefault();
+                switchPanel((currentPanelIndex - 1 + totalPanels) % totalPanels);
+            }
+        });
+    </script>
+</body>
+</html>
