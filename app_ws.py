@@ -5,9 +5,10 @@ import asyncio
 import websockets
 import json
 import threading
+from ultralytics import YOLO
 
 # 1. 載入你從 HaGRID 下載的模型檔案
-model = YOLO('hagrid_yolov10n.pt') 
+model = YOLO('YOLOv10n_gestures.pt') 
 
 latest_gesture = "None"
 def gesture_result_callback(result, output_image, timestamp_ms):
@@ -18,27 +19,34 @@ def gesture_result_callback(result, output_image, timestamp_ms):
     else:
         latest_gesture = "None"
 
-# --- 2. WebSocket 伺服器邏輯 ---
+# --- 2. WebSocket Server Logic ---
 async def gesture_server(websocket):
-    print("網頁已成功連線！")
+    print("Webpage connected successfully.")
     last_sent = ""
     while True:
-        # 如果偵測到有效手勢，且跟前一次傳送的不同，就傳給網頁
+        # If a valid gesture is detected and it is different from the last sent gesture
         if latest_gesture != "None" and latest_gesture != last_sent:
             message = json.dumps({"gesture": latest_gesture})
             await websocket.send(message)
             last_sent = latest_gesture
         
-        await asyncio.sleep(0.05) # 稍微暫停，避免吃光 CPU 資源
+        # Pause slightly to prevent high CPU usage
+        await asyncio.sleep(0.05)
+
+async def start_server_async():
+    # Modern approach to start the websockets server
+    async with websockets.serve(gesture_server, "localhost", 8765):
+        print("WebSocket server started on ws://localhost:8765")
+        # Run forever
+        await asyncio.Future()
 
 def start_ws_server():
-    # 建立一個獨立的事件迴圈給 WebSocket 使用
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    start_server = websockets.serve(gesture_server, "localhost", 8765)
-    print("WebSocket 伺服器啟動於 ws://localhost:8765")
-    loop.run_until_complete(start_server)
-    loop.run_forever()
+    # Use asyncio.run to properly handle the event loop in a new thread
+    asyncio.run(start_server_async())
+
+# Start WebSocket in a background thread so it does not block OpenCV
+ws_thread = threading.Thread(target=start_ws_server, daemon=True)
+ws_thread.start()
 
 cap = cv2.VideoCapture(0)
 timestamp = 0

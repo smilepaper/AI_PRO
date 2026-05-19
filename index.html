@@ -222,12 +222,12 @@
             if (now - lastGestureTime < cooldownMs) return;
 
             // --- 定義手勢與 UI 的對應邏輯 ---
-            if (gesture === 'Thumb_Up') {
+            if (gesture === 'like') {
                 // 比讚 -> 切換到下一個面板 (往右)
                 switchPanel((currentPanelIndex + 1) % totalPanels);
                 lastGestureTime = now;
                 
-            } else if (gesture === 'Thumb_Down') {
+            } else if (gesture === 'dislike') {
                 // 倒讚 -> 切換到上一個面板 (往左)
                 switchPanel((currentPanelIndex - 1 + totalPanels) % totalPanels);
                 lastGestureTime = now;
