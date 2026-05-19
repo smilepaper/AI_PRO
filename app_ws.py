@@ -6,9 +6,10 @@ import websockets
 import json
 import threading
 
-# --- 1. 全域變數：儲存最新手勢 ---
-latest_gesture = "None"
+# 1. 載入你從 HaGRID 下載的模型檔案
+model = YOLO('hagrid_yolov10n.pt') 
 
+latest_gesture = "None"
 def gesture_result_callback(result, output_image, timestamp_ms):
     global latest_gesture
     if result.gestures:
@@ -39,41 +40,41 @@ def start_ws_server():
     loop.run_until_complete(start_server)
     loop.run_forever()
 
-# 使用多執行緒在背景啟動 WebSocket，才不會卡住 OpenCV 的鏡頭畫面
-ws_thread = threading.Thread(target=start_ws_server, daemon=True)
-ws_thread.start()
-
-# --- 3. 原本的 MediaPipe 與 OpenCV 邏輯 ---
-options = vision.GestureRecognizerOptions(
-    base_options=mp.tasks.BaseOptions(model_asset_path='gesture_recognizer.task'),
-    running_mode=vision.RunningMode.LIVE_STREAM,
-    result_callback=gesture_result_callback
-)
-
-recognizer = vision.GestureRecognizer.create_from_options(options)
 cap = cv2.VideoCapture(0)
 timestamp = 0
 
 print('📷 開啟鏡頭... (按 q 離開)')
-
 while cap.isOpened():
     success, frame = cap.read()
-    if not success:
-        break
-
+    if not success: break
+    
     frame = cv2.flip(frame, 1)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-    timestamp += 1
-    recognizer.recognize_async(mp_image, timestamp)
 
-    # 顯示目前手勢在畫面上，方便除錯
-    cv2.putText(frame, f"Gesture: {latest_gesture}", (50, 50), 
-                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
+    # 2. 將畫面丟給 YOLO 模型進行預測
+    # conf=0.5 代表信心度要大於 50% 才算數
+    results = model(frame, conf=0.5, verbose=False)
+    
+    latest_gesture = "None"
+    
+    # 3. 解析 YOLO 的預測結果
+    for result in results:
+        boxes = result.boxes # 取得所有偵測到的方框
+        for box in boxes:
+            # 畫上方框
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            
+            # 取得手勢名稱與信心度
+            class_id = int(box.cls[0])
+            latest_gesture = model.names[class_id] # 例如 "like", "ok", "peace"
+            confidence = float(box.conf[0])
+            
+            # 把手勢文字寫在畫面上
+            cv2.putText(frame, f"{latest_gesture} {confidence:.2f}", 
+                        (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    cv2.imshow('Gesture Recognizer Server', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    cv2.imshow('HaGRID YOLOv10 Gesture', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'): break
 
-recognizer.close()
 cap.release()
 cv2.destroyAllWindows()
