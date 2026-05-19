@@ -143,7 +143,10 @@
                         clearInterval(timerInterval);
                         isRunning = false;
                         statusText.textContent = "時間到！";
-                        alert("番茄鐘結束，休息一下吧！");
+                        // Send message to parent window for cross-panel alert
+                        if (window.parent !== window) {
+                            window.parent.postMessage('pomodoro-time-up', '*');
+                        }
                     }
                 }, 1000);
                 console.log("番茄鐘：開始");

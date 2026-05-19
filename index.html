@@ -198,6 +198,52 @@
                 switchPanel((currentPanelIndex - 1 + totalPanels) % totalPanels);
             }
         });
+        // --- 串接 Python 手勢辨識 (WebSocket) ---
+        const ws = new WebSocket('ws://localhost:8765');
+        
+        ws.onopen = function() {
+            console.log('成功連接到 Python 手勢伺服器');
+            // 可以透過介面提示使用者已連線
+            document.querySelector('.global-hint').innerHTML += ' | <span style="color:#66fcf1;">AI 視覺已連線</span>';
+        };
+
+        // 加入冷卻時間 (Cooldown)，避免手勢一直觸發導致畫面瘋狂亂跳
+        let lastGestureTime = 0;
+        const cooldownMs = 1000; // 1秒內不重複觸發
+
+        ws.onmessage = function(event) {
+            const now = Date.now();
+            const data = JSON.parse(event.data);
+            const gesture = data.gesture;
+            
+            console.log('收到手勢指令:', gesture);
+
+            // 如果還在冷卻時間內，則忽略此次指令
+            if (now - lastGestureTime < cooldownMs) return;
+
+            // --- 定義手勢與 UI 的對應邏輯 ---
+            if (gesture === 'Thumb_Up') {
+                // 比讚 -> 切換到下一個面板 (往右)
+                switchPanel((currentPanelIndex + 1) % totalPanels);
+                lastGestureTime = now;
+                
+            } else if (gesture === 'Thumb_Down') {
+                // 倒讚 -> 切換到上一個面板 (往左)
+                switchPanel((currentPanelIndex - 1 + totalPanels) % totalPanels);
+                lastGestureTime = now;
+                
+            } else if (gesture === 'Open_Palm') {
+                // 布 (張開手) -> 關閉全域警告層
+                if (document.getElementById('global-alert').classList.contains('active')) {
+                    dismissAlert();
+                    lastGestureTime = now;
+                }
+            }
+        };
+
+        ws.onerror = function() {
+            console.error('無法連接到手勢伺服器，請確認 Python 程式是否已執行。');
+        };
     </script>
 </body>
 </html>
