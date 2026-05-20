@@ -51,7 +51,7 @@ ws_thread.start()
 cap = cv2.VideoCapture(0)
 timestamp = 0
 
-print('📷 開啟鏡頭... (按 q 離開)')
+print('開啟鏡頭... (按 q 離開)')
 while cap.isOpened():
     success, frame = cap.read()
     if not success: break
