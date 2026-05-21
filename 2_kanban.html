@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板二：任務看板</title>
+    <style>
+        :root { --bg: #eaeff1; --col-bg: #e2e4e6; --text: #333; --accent: #0079bf; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .header {
+            padding: 15px 30px; background: var(--accent); color: white;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .add-btn {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .add-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .board {
+            display: flex; gap: 20px; padding: 20px 30px; height: calc(100% - 60px);
+            box-sizing: border-box; overflow-x: auto;
+        }
+        .column {
+            background: var(--col-bg); border-radius: 6px; width: 33%; min-width: 300px;
+            display: flex; flex-direction: column; max-height: 100%;
+        }
+        .col-header {
+            padding: 12px 15px; font-weight: bold; font-size: 1.1rem;
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+        }
+        .card-list {
+            padding: 10px; flex: 1; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .card {
+            background: #fff; padding: 15px; border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border-left: 4px solid #ccc;
+            user-select: none;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .card:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .card.todo { border-color: #ff9f1a; }
+        .card.doing { border-color: #00c2e0; }
+        .card.done { border-color: #51e898; text-decoration: line-through; color: #888; }
+
+        .instruction {
+            font-size: 0.85rem; color: #666; margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>手勢任務看板 (Gesture Kanban)</h1>
+            <div class="instruction">隔空操作提示：請將手對準卡片，並比出 <b>Fist (握拳)</b> 點擊它，卡片就會自動移往下一個階段！</div>
+        </div>
+        <button class="add-btn" onclick="addTask()">+ 新增任務</button>
+    </div>
+
+    <div class="board">
+        <div class="column">
+            <div class="col-header">待辦事項 (To Do)</div>
+            <div class="card-list" id="col-todo"></div>
+        </div>
+        <div class="column">
+            <div class="col-header">進行中 (Doing)</div>
+            <div class="card-list" id="col-doing"></div>
+        </div>
+        <div class="column">
+            <div class="col-header">已完成 (Done)</div>
+            <div class="card-list" id="col-done"></div>
+        </div>
+    </div>
+
+    <script>
+        const columns = {
+            'todo': document.getElementById('col-todo'),
+            'doing': document.getElementById('col-doing'),
+            'done': document.getElementById('col-done')
+        };
+
+        const states = ['todo', 'doing', 'done'];
+
+        // 預設資料
+        const tasks = [
+            { id: 1, title: '準備技術分享簡報', state: 'todo' },
+            { id: 2, title: '測試隔空手勢追蹤演算法', state: 'doing' },
+            { id: 3, title: '構思實用的 AI 應用場景', state: 'done' }
+        ];
+
+        function renderBoard() {
+            Object.values(columns).forEach(col => col.innerHTML = '');
+            
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = `card ${task.state}`;
+                card.textContent = task.title;
+                
+                // 點擊事件：推進狀態
+                card.onclick = () => advanceState(task.id);
+                
+                columns[task.state].appendChild(card);
+            });
+        }
+
+        function advanceState(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            const currentIndex = states.indexOf(task.state);
+            // 如果是在 done，點擊就從列表移除 (或是回到 todo)
+            if (currentIndex === states.length - 1) {
+                if(confirm(`任務「${task.title}」已完成，是否要將其封存(刪除)？\n(按取消則退回待辦)`)) {
+                    const idx = tasks.indexOf(task);
+                    tasks.splice(idx, 1);
+                } else {
+                    task.state = 'todo';
+                }
+            } else {
+                task.state = states[currentIndex + 1];
+            }
+            renderBoard();
+        }
+
+        function addTask() {
+            const title = prompt('請輸入新任務名稱：');
+            if (title && title.trim()) {
+                tasks.push({
+                    id: Date.now(),
+                    title: title.trim(),
+                    state: 'todo'
+                });
+                renderBoard();
+            }
+        }
+
+        // 初始渲染
+        renderBoard();
+    </script>
+</body>
+</html>

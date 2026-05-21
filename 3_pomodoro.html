@@ -176,7 +176,6 @@
             console.log("番茄鐘：重設");
         }
 
-        // 監聽鍵盤事件
         window.addEventListener('keydown', function(e) {
             // 如果是在輸入框內部按鍵，不觸發全局快捷鍵（方便使用者打字）
             if (document.activeElement === inputField && e.key !== 'Enter' && e.key !== 'Escape') {
@@ -197,6 +196,13 @@
             } else if (e.key === 'Enter') {
                 inputField.blur(); // 按 Enter 隱藏輸入框焦點並更新
                 setCustomTime();
+            }
+        });
+
+        // 接收來自外部的手勢訊息 (timeout 手勢)
+        window.addEventListener('message', function(event) {
+            if (event.data === 'pomodoro-toggle') {
+                toggleTimer();
             }
         });
     </script>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板一：全息 3D 展廳</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --accent-color: #45f3ff;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-color); color: #fff;
+            height: 100vh; display: flex;
+            align-items: center; justify-content: center;
+            overflow: hidden; font-family: 'Segoe UI', sans-serif;
+            perspective: 1000px;
+        }
+
+        .scene {
+            width: 300px; height: 300px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        .cube {
+            width: 100%; height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .face {
+            position: absolute;
+            width: 300px; height: 300px;
+            background: rgba(11, 12, 16, 0.8);
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-color), inset 0 0 20px var(--accent-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; font-weight: bold; color: var(--accent-color);
+            text-shadow: 0 0 10px var(--accent-color);
+            opacity: 0.85;
+        }
+
+        .face:nth-child(1) { transform: translateZ(150px); }
+        .face:nth-child(2) { transform: rotateY(180deg) translateZ(150px); }
+        .face:nth-child(3) { transform: rotateY(90deg) translateZ(150px); }
+        .face:nth-child(4) { transform: rotateY(-90deg) translateZ(150px); }
+        .face:nth-child(5) { transform: rotateX(90deg) translateZ(150px); }
+        .face:nth-child(6) { transform: rotateX(-90deg) translateZ(150px); }
+
+        .face::before {
+            content: ''; position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border: 1px dashed rgba(69, 243, 255, 0.5);
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px; left: 20px;
+            color: var(--accent-color);
+            font-family: monospace; font-size: 0.9rem;
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(-10px); }
+            50% { transform: translateY(10px); }
+            100% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud" id="hud">
+        SYS.ONLINE<br>
+        TRACKING: ACTIVE<br>
+        COORD: 0.00, 0.00
+    </div>
+
+    <div class="scene" id="scene">
+        <div class="cube">
+            <div class="face">AI</div>
+            <div class="face">CORE</div>
+            <div class="face">SYS</div>
+            <div class="face">NET</div>
+            <div class="face">DATA</div>
+            <div class="face">LINK</div>
+        </div>
+    </div>
+
+    <script>
+        const scene = document.getElementById('scene');
+        const hud = document.getElementById('hud');
+
+        // 接收來自 index.html 的手勢座標
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'hand-track') {
+                const nx = event.data.x; // 0.0 to 1.0
+                const ny = event.data.y; // 0.0 to 1.0
+
+                hud.innerHTML = `SYS.ONLINE<br>TRACKING: ACTIVE<br>COORD: ${nx.toFixed(2)}, ${ny.toFixed(2)}`;
+
+                // 將 0~1 的座標轉換為旋轉角度
+                const rotX = (ny - 0.5) * -180; // 上下移動改變 X 軸旋轉
+                const rotY = (nx - 0.5) * 180;  // 左右移動改變 Y 軸旋轉
+
+                scene.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+            }
+        });
+    </script>
+</body>
+</html>
