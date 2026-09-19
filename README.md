@@ -71,7 +71,3 @@ python gesture_app.py
 - 測試平台：Windows（使用 `pyautogui` 控制系統輸入）
 - 需安裝相容的 Python 3.8+ 環境
 
-
-聯絡
------
-如需更多功能或翻譯/文件修改，請在專案中開 issue 或直接聯絡作者。
