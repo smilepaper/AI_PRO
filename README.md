@@ -71,15 +71,6 @@ python gesture_app.py
 - 測試平台：Windows（使用 `pyautogui` 控制系統輸入）
 - 需安裝相容的 Python 3.8+ 環境
 
-疑難排解
------
-- 若無法存取攝影機：確認其他程式未佔用攝影機，或嘗試更改 `cv2.VideoCapture(0)` 的參數。
-- 若無法操作系統輸入（滑鼠/鍵盤）：確認系統權限（部分環境可能需以管理員權限執行）。
-
-授權與致謝
------
-- 本專案採非商業使用為主（未指定正式授權，請按照需求補上 LICENSE）。
-- 感謝 `ultralytics` YOLO、`pyautogui` 與 OpenCV 提供的便利工具。
 
 聯絡
 -----
